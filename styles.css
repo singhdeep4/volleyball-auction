@@ -2030,10 +2030,10 @@ body.audience-mode .pc-photo {
     position: relative;
     padding: 5rem 2rem 3rem;
     background: linear-gradient(180deg, transparent 0%, rgba(6, 6, 19, 1) 50%, #03030b 100%);
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
     width: 100%;
     z-index: 10;
-    margin-top: -2rem; /* Pull slightly up to blend with the login screen better */
+    margin-top: 4rem; /* Proper spacing to avoid overlapping buttons */
 }
 
 .sponsors-section::before {
