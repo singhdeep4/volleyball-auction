@@ -130,16 +130,18 @@ function saveState() {
 }
 
 function setupSSE() {
+    console.log('🔗 Connecting to real-time update stream...');
     const evtSource = new EventSource('/api/stream');
+    
     evtSource.onmessage = async (e) => {
         if (e.data === 'update') {
+            console.log('⚡ Received real-time update!');
             const oldHistoryLength = state.auctionHistory ? state.auctionHistory.length : 0;
 
             if (currentUser && currentUser.role === 'team') {
                 await loadState();
                 renderTeamDashboard();
             } else if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'audience')) {
-                // Background update for admin if multiple admins are logged in, or for audience
                 const oldStateStr = JSON.stringify(state);
                 await loadState();
                 if (oldStateStr !== JSON.stringify(state)) {
@@ -147,7 +149,6 @@ function setupSSE() {
                 }
             }
 
-            // Check if there's a new sold event to show animation to audience/team viewers
             const newHistoryLength = state.auctionHistory ? state.auctionHistory.length : 0;
             if (newHistoryLength > oldHistoryLength) {
                 const latestEvent = state.auctionHistory[newHistoryLength - 1];
@@ -162,6 +163,13 @@ function setupSSE() {
                 }
             }
         }
+    };
+
+    evtSource.onerror = (err) => {
+        console.error('❌ SSE Connection failed. Reconnecting...', err);
+        evtSource.close();
+        // Try to reconnect after 3 seconds
+        setTimeout(setupSSE, 3000);
     };
 }
 

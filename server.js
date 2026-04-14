@@ -36,15 +36,43 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, {
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive'
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*',
+            'X-Accel-Buffering': 'no' // Essential for Render/Proxies
         });
+        
+        // Send initial heartbeat
+        res.write(': heartbeat\n\n');
+        
         sseClients.push(res);
-        req.on('close', () => { sseClients = sseClients.filter(c => c !== res); });
+        
+        // Keep connection alive with a ping every 20s
+        const heartbeat = setInterval(() => {
+            if (!res.finished) {
+                res.write(': heartbeat\n\n');
+            }
+        }, 20000);
+
+        req.on('close', () => { 
+            clearInterval(heartbeat);
+            sseClients = sseClients.filter(c => c !== res); 
+        });
         return;
     }
 
     // API: State Sync
     if (req.url === '/api/state') {
+        // Enable CORS for state API
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+        if (req.method === 'OPTIONS') {
+            res.writeHead(204);
+            res.end();
+            return;
+        }
+
         if (req.method === 'GET') {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ state: appState }));
@@ -63,7 +91,9 @@ const server = http.createServer((req, res) => {
                     res.end(JSON.stringify({ success: true }));
 
                     // Notify all listening clients (Team phones)
-                    sseClients.forEach(c => c.write(`data: update\n\n`));
+                    sseClients.forEach(c => {
+                        try { c.write(`data: update\n\n`); } catch(e) {}
+                    });
                 } catch (e) {
                     res.writeHead(500); res.end('Error parsing data');
                 }
