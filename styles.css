@@ -106,12 +106,13 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    padding: 2rem;
+    padding: 4rem 2rem;
     background: linear-gradient(rgba(6, 6, 19, 0.8), rgba(6, 6, 19, 0.8)), 
                 url('https://t3.ftcdn.net/jpg/04/22/84/12/360_F_422841241_OR69MNhNG3Sxl6pmrKwuoBZPaZpZLt1a.jpg');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
+    z-index: 5;
 }
 #loginScreen.active {
     display: flex;
@@ -909,17 +910,17 @@ body {
 }
 
 .bid-history-item {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
     align-items: center;
-    justify-content: space-between;
-    padding: 0.4rem 0;
+    padding: 0.6rem 0;
     border-bottom: 1px solid rgba(255,255,255,0.03);
-    font-size: 0.8rem;
+    font-size: 0.85rem;
 }
 .bid-history-item:last-child { border-bottom: none; }
-.bhi-team { font-weight: 500; }
-.bhi-amount { color: var(--success); font-weight: 600; }
-.bhi-time { color: var(--text-muted); font-size: 0.7rem; }
+.bhi-team { font-weight: 500; text-align: left; }
+.bhi-amount { color: var(--success); font-weight: 700; text-align: center; }
+.bhi-time { color: var(--text-muted); font-size: 0.75rem; text-align: right; }
 
 /* Auction Actions */
 .auction-actions {
@@ -1824,14 +1825,20 @@ body.audience-mode .nav-left::after {
     font-size: 0.75rem;
     font-weight: 700;
 }
-body.audience-mode .header-actions,
-body.audience-mode .auction-actions,
-body.audience-mode .pc-actions,
-body.audience-mode .pli-action,
-body.audience-mode .tbc-bid-btn,
-body.audience-mode .nav-right .btn-outline,
-body.audience-mode .photo-upload input,
-body.audience-mode .pc-photo-overlay {
+/* Hide administrative actions for everyone except Admin */
+body:not(.admin-mode) .header-actions,
+body:not(.admin-mode) .auction-actions,
+body:not(.admin-mode) .pc-actions,
+body:not(.admin-mode) .pli-action,
+body:not(.admin-mode) .nav-right .btn-outline,
+body:not(.admin-mode) .photo-upload input,
+body:not(.admin-mode) .pc-photo-overlay,
+body:not(.admin-mode) .empty-state .btn {
+    display: none !important;
+}
+
+/* Specific audience-mode cleanup */
+body.audience-mode .tbc-bid-btn {
     display: none !important;
 }
 body.audience-mode .pc-photo {
@@ -2021,29 +2028,31 @@ body.audience-mode .pc-photo {
    ============================================ */
 .sponsors-section {
     position: relative;
-    padding: 4rem 2rem 3rem;
+    padding: 5rem 2rem 3rem;
     background: linear-gradient(180deg, transparent 0%, rgba(6, 6, 19, 1) 50%, #03030b 100%);
     border-top: 1px solid rgba(255, 255, 255, 0.04);
-    margin-top: auto;
     width: 100%;
+    z-index: 10;
+    margin-top: -2rem; /* Pull slightly up to blend with the login screen better */
 }
 
 .sponsors-section::before {
     content: "OFFICIAL PARTNERS";
     position: absolute;
-    top: -14px;
+    top: 1.5rem;
     left: 50%;
     transform: translateX(-50%);
     background: var(--bg-primary);
-    padding: 0.3rem 2rem;
+    padding: 0.4rem 2.5rem;
     font-family: var(--font-display);
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     font-weight: 800;
     color: var(--primary);
     letter-spacing: 0.3em;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 107, 53, 0.3);
     border-radius: 30px;
-    box-shadow: 0 0 30px rgba(255, 107, 53, 0.15);
+    box-shadow: 0 0 30px rgba(255, 107, 53, 0.2);
+    z-index: 20;
 }
 
 .sponsors-grid {
