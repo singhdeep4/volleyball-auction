@@ -1,11 +1,15 @@
 {
   "name": "vollyball",
   "version": "1.0.0",
-  "description": "",
-  "main": "app.js",
+  "description": "Volleyball Auction System",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "build": "echo 'Build skipped (Static project)'"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "keywords": [],
   "author": "",

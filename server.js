@@ -2,7 +2,19 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
+// --- RENDER HARDENING ---
 const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0'; // Essential for Render to bind correctly
+
+// Global Error Handlers (Prevents silent 502 crashes)
+process.on('uncaughtException', (err) => {
+    console.error('🔥 CRITICAL: Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('🔥 CRITICAL: Unhandled Rejection at:', promise, 'reason:', reason);
+});
+// ------------------------
 
 const MIME_TYPES = {
     '.html': 'text/html',
@@ -20,11 +32,18 @@ const MIME_TYPES = {
 
 let appState = null;
 const STATE_FILE = path.join(__dirname, 'state.json');
+
+// Improved Initial State Loading
 try {
     if (fs.existsSync(STATE_FILE)) {
-        appState = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+        const rawData = fs.readFileSync(STATE_FILE, 'utf8');
+        if (rawData) {
+            appState = JSON.parse(rawData);
+            console.log('✅ State loaded successfully from file.');
+        }
     }
 } catch (e) {
+    console.error('⚠️ Could not load state.json:', e.message);
     appState = null;
 }
 
@@ -86,15 +105,25 @@ const server = http.createServer((req, res) => {
                 try {
                     const data = JSON.parse(body);
                     appState = data.state;
-                    fs.writeFileSync(STATE_FILE, JSON.stringify(appState, null, 2));
+                    
+                    // Robust File Writing with try-catch
+                    try {
+                        fs.writeFileSync(STATE_FILE, JSON.stringify(appState, null, 2));
+                    } catch (writeErr) {
+                        console.error('❌ Disk Write Error:', writeErr.message);
+                        // We still notify clients even if disk write fails (ephemeral update)
+                    }
+
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: true }));
 
-                    // Notify all listening clients (Team phones)
+                    // Notify all listening clients
+                    console.log(`📣 Notifying ${sseClients.length} clients of update...`);
                     sseClients.forEach(c => {
                         try { c.write(`data: update\n\n`); } catch(e) {}
                     });
                 } catch (e) {
+                    console.error('❌ POST Parse Error:', e.message);
                     res.writeHead(500); res.end('Error parsing data');
                 }
             });
@@ -114,8 +143,8 @@ const server = http.createServer((req, res) => {
                 // Serve index.html for SPA routing
                 fs.readFile(path.join(__dirname, 'index.html'), (e, d) => {
                     if (e) {
-                        res.writeHead(500);
-                        res.end('Server Error');
+                        res.writeHead(404);
+                        res.end('File Not Found');
                     } else {
                         res.writeHead(200, { 'Content-Type': 'text/html' });
                         res.end(d);
@@ -132,8 +161,12 @@ const server = http.createServer((req, res) => {
     });
 });
 
-server.listen(PORT, () => {
-    console.log(`\n  🏐 VolleySphere Pro is running!\n`);
-    console.log(`  ➜  Local: http://localhost:${PORT}\n`);
+// Explicitly bind to HOST (0.0.0.0) for Render
+server.listen(PORT, HOST, () => {
+    console.log(`\n  🏐 VolleySphere Pro is ready for the tournament!\n`);
+    console.log(`  ➜  Mode: ${process.env.NODE_ENV || 'production'}`);
+    console.log(`  ➜  Host: ${HOST}`);
+    console.log(`  ➜  Port: ${PORT}`);
+    console.log(`  ➜  URL:  http://localhost:${PORT}\n`);
     console.log(`  Admin Password: admin@123\n`);
 });
