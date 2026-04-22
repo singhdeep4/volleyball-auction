@@ -1,5 +1,5 @@
 /* ============================================
-   VolleySphere Pro — Application Logic
+   VPL — Application Logic
    ============================================ */
 
 // ============ DEFAULT STATE ============

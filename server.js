@@ -2,13 +2,16 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
+require('dotenv').config();
+const { MongoClient } = require('mongodb');
 
 const app = express();
 const server = http.createServer(app);
 
-// --- RENDER CONFIG ---
+// --- CONFIG ---
 const PORT = process.env.PORT || 3000;
 const STATE_FILE = path.join(__dirname, 'state.json');
+const MONGO_URI = process.env.MONGO_URI;
 
 // Global Error Handlers
 process.on('uncaughtException', (err) => console.error('🔥 CRITICAL:', err));
@@ -20,16 +23,39 @@ app.use(express.static(__dirname)); // Perfectly serves styles.css, app.js, imag
 
 let appState = null;
 let sseClients = [];
+let dbCollection = null;
 
 // Load State
-try {
-    if (fs.existsSync(STATE_FILE)) {
-        appState = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-        console.log('✅ State loaded.');
+async function initDB() {
+    if (MONGO_URI) {
+        try {
+            const client = new MongoClient(MONGO_URI);
+            await client.connect();
+            const db = client.db('vpl_db');
+            dbCollection = db.collection('app_state');
+            
+            const doc = await dbCollection.findOne({ _id: 'main_state' });
+            if (doc && doc.state) {
+                appState = doc.state;
+                console.log('✅ State loaded from MongoDB.');
+            } else {
+                console.log('⚠️ No state in MongoDB, starting fresh.');
+            }
+        } catch (err) {
+            console.error('❌ MongoDB Connection Error:', err);
+        }
+    } else {
+        try {
+            if (fs.existsSync(STATE_FILE)) {
+                appState = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+                console.log('✅ State loaded from local disk (state.json).');
+            }
+        } catch (e) {
+            console.warn('⚠️ Local state load failed, starting fresh.');
+        }
     }
-} catch (e) {
-    console.warn('⚠️ State load failed, starting fresh.');
 }
+initDB();
 
 // API: Real-time Stream (SSE)
 app.get('/api/stream', (req, res) => {
@@ -60,14 +86,27 @@ app.get('/api/state', (req, res) => {
 });
 
 // API: POST State
-app.post('/api/state', (req, res) => {
+app.post('/api/state', async (req, res) => {
     try {
         appState = req.body.state;
         
-        // Async save to avoid blocking the event loop
-        fs.writeFile(STATE_FILE, JSON.stringify(appState, null, 2), (err) => {
-            if (err) console.error('❌ Disk save error:', err.message);
-        });
+        // Save to DB or Disk
+        if (dbCollection) {
+            try {
+                await dbCollection.updateOne(
+                    { _id: 'main_state' },
+                    { $set: { state: appState } },
+                    { upsert: true }
+                );
+            } catch (err) {
+                console.error('❌ MongoDB save error:', err.message);
+            }
+        } else {
+            // Async save to avoid blocking the event loop
+            fs.writeFile(STATE_FILE, JSON.stringify(appState, null, 2), (err) => {
+                if (err) console.error('❌ Disk save error:', err.message);
+            });
+        }
 
         res.json({ success: true });
 
@@ -88,6 +127,6 @@ app.get('*', (req, res) => {
 
 // Start Server on 0.0.0.0
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n  🏐 VolleySphere Pro (Express) is LIVE!`);
+    console.log(`\n  🏐 VPL (Express) is LIVE!`);
     console.log(`  ➜  Port: ${PORT}\n`);
 });

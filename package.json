@@ -9,7 +9,9 @@
     "build": "echo 'Build skipped'"
   },
   "dependencies": {
-    "express": "^4.18.2"
+    "dotenv": "^17.4.2",
+    "express": "^4.18.2",
+    "mongodb": "^7.2.0"
   },
   "engines": {
     "node": ">=18.0.0"
