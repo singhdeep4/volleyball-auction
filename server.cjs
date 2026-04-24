@@ -19,7 +19,7 @@ process.on('unhandledRejection', (err) => console.error('🔥 CRITICAL:', err));
 
 // Middleware
 app.use(express.json({ limit: '50mb' })); // Allow large image uploads
-app.use(express.static(__dirname)); // Perfectly serves styles.css, app.js, images, etc.
+app.use(express.static(path.join(__dirname, 'dist'))); // Serve built React assets
 
 let appState = null;
 let sseClients = [];
@@ -120,9 +120,9 @@ app.post('/api/state', async (req, res) => {
     }
 });
 
-// SPA Fallback: Serve index.html for any unknown route
+// SPA Fallback: Serve index.html from the dist folder
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // Start Server on 0.0.0.0
